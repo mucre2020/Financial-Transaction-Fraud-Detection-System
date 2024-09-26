@@ -1,0 +1,28 @@
+db.fraud_alerts.countDocuments()
+use fraud_detection_db
+db.fraud_alerts.find().pretty()
+use fraud_detection_db
+db.fraud_alerts.countDocuments()
+db.transactions.countDocuments()
+use fraud_detection_db
+db.fraud_alerts.find().pretty()
+db.fraud_alerts.countDocuments()
+db.fraud_alerts.find().pretty()
+use fraud_detection_db
+db.fraud_alerts.countDocuments()
+use fraud_detection_db
+db.transactions.countDocuments()
+use fraud_detection_db
+db.transactions.countDocuments()
+use fraud_detection_db
+db.transactions.countDocuments()
+db.test_collection.find()
+db.test_collection.insertOne({ test: "document" })
+db.fraud_alerts.countDocuments()
+db.transactions.countDocuments()
+show collections
+use fraud_detection_db
+db.transactions.countDocuments()
+db.fraud_alerts.find().pretty()
+db.transactions.find().pretty()
+use fraud_detection_db

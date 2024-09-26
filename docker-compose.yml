@@ -1,0 +1,97 @@
+version: '3.8'
+services:
+  zookeeper:
+    image: zookeeper:latest
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+    networks:
+      - kafka-docker_kafka-network
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_LOG_RETENTION_HOURS: 72
+    networks:
+      - kafka-docker_kafka-network
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: sa
+      MONGO_INITDB_ROOT_PASSWORD: RFL@2o2o
+    volumes:
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./mongodb_data:/data/db
+    networks:
+      - kafka-docker_kafka-network
+
+  transaction_generator:
+    build:
+      context: .
+      dockerfile: Dockerfile.generator
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+    networks:
+      - kafka-docker_kafka-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G  # Reduced memory limit
+
+  spark:
+    build: .
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - MONGO_USERNAME=sa
+      - MONGO_PASSWORD=RFL@2o2o
+      - MONGO_HOST=mongodb:27017
+      - MONGO_DATABASE=fraud_detection_db
+    volumes:
+      - ./spark-checkpoints:/opt/spark-checkpoints
+    networks:
+      - kafka-docker_kafka-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G  # Reduced memory limit
+
+  streamlit-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - MONGO_URI=mongodb://sa:RFL@2o2o@mongodb:27017/fraud_detection_db?authSource=admin
+    depends_on:
+      - mongodb
+    networks:
+      - kafka-docker_kafka-network
+
+networks:
+  kafka-docker_kafka-network:
+    external: true

@@ -1,0 +1,19 @@
+# Use an official PySpark image
+FROM jupyter/pyspark-notebook:spark-3.5.0
+
+USER root
+
+# Install Kafka dependencies and confluent-kafka
+RUN pip install kafka-python confluent-kafka
+
+# Copy the Python script into the container
+COPY transaction_generator.py /home/jovyan/transaction_generator.py
+
+# Switch back to the notebook user
+USER ${NB_UID}
+
+# Set the working directory
+WORKDIR /home/jovyan
+
+# Command to run the Python script
+CMD ["python", "transaction_generator.py"]
